@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Tambak Garam — Kel. 6</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0D1117;
+      color: #E6EDF3;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #161B22;
+      border: 1px solid #30363D;
+      padding: 14px 20px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    header h1 { font-size: 16px; color: #E6EDF3; }
+    #status-bar { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8B949E; }
+    #status-dot { width: 8px; height: 8px; border-radius: 50%; background: #238636; }
+    #last-update { font-size: 12px; color: #6E7681; }
+
+    .alert {
+      display: none;
+      background: #2D1B1B;
+      border: 1px solid #6E2828;
+      color: #F85149;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .alert.show { display: block; }
+
+    /* Node status */
+    .node-status {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .node-card {
+      flex: 1;
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .node-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .node-dot.online  { background: #238636; box-shadow: 0 0 6px #238636; }
+    .node-dot.offline { background: #F85149; box-shadow: 0 0 6px #F85149; }
+    .node-info { font-size: 12px; }
+    .node-info .name { font-weight: bold; color: #E6EDF3; }
+    .node-info .time { color: #6E7681; margin-top: 2px; }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .card.blue   { border-left: 3px solid #388BFD; }
+    .card.green  { border-left: 3px solid #238636; }
+    .card.amber  { border-left: 3px solid #BB8009; }
+    .card.purple { border-left: 3px solid #8B5CF6; }
+    .card .label { font-size: 11px; color: #8B949E; margin-bottom: 6px; }
+    .card .value { font-size: 30px; font-weight: bold; color: #E6EDF3; }
+    .card .unit  { font-size: 11px; color: #6E7681; margin-top: 2px; }
+
+    /* Chart box */
+    .chart-box {
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .chart-header h3 { font-size: 13px; color: #8B949E; }
+    .filter-btns { display: flex; gap: 6px; }
+    .filter-btns button {
+      background: #21262D;
+      border: 1px solid #30363D;
+      color: #8B949E;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .filter-btns button.active {
+      background: #388BFD;
+      border-color: #388BFD;
+      color: #fff;
+    }
+
+    /* Live table */
+    .table-box {
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 10px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .table-box h3 { font-size: 13px; color: #8B949E; margin-bottom: 10px; }
+    .live-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .live-table th {
+      background: #21262D;
+      color: #6E7681;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: normal;
+      border-bottom: 1px solid #30363D;
+    }
+    .live-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #21262D;
+      color: #E6EDF3;
+      transition: background 0.4s;
+    }
+    .live-table tr.new-row td { background: #1C2A1C; }
+    .live-table tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .badge.high   { background: #1B3A1B; color: #3FB950; }
+    .badge.mid    { background: #2D2A1B; color: #E3B341; }
+    .badge.low    { background: #2D1B1B; color: #F85149; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌊 Monitoring Produksi Tambak Garam — Kelompok 6</h1>
+  <div>
+    <div id="status-bar">
+      <span id="status-dot"></span>
+      <span id="status-txt">Menghubungkan...</span>
+    </div>
+    <div id="last-update"></div>
+  </div>
+</header>
+
+<div class="alert" id="alert"></div>
+
+<div class="node-status">
+  <div class="node-card">
+    <div class="node-dot offline" id="dot-kel1"></div>
+    <div class="node-info">
+      <div class="name">ESP32 — Kelompok 1</div>
+      <div class="time" id="time-kel1">Belum ada data</div>
+    </div>
+  </div>
+  <div class="node-card">
+    <div class="node-dot offline" id="dot-kel2"></div>
+    <div class="node-info">
+      <div class="name">ESP32 — Kelompok 2</div>
+      <div class="time" id="time-kel2">Belum ada data</div>
+    </div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card blue">
+    <div class="label">Suhu</div>
+    <div class="value" id="v-suhu">--</div>
+    <div class="unit">°C</div>
+  </div>
+  <div class="card green">
+    <div class="label">Kelembapan</div>
+    <div class="value" id="v-hum">--</div>
+    <div class="unit">%</div>
+  </div>
+  <div class="card amber">
+    <div class="label">Intensitas Cahaya</div>
+    <div class="value" id="v-lux">--</div>
+    <div class="unit">lux</div>
+  </div>
+  <div class="card purple">
+    <div class="label">Indeks Optimalitas</div>
+    <div class="value" id="v-opt">--</div>
+    <div class="unit">/ kondisi</div>
+  </div>
+</div>
+
+<div class="chart-box">
+  <div class="chart-header">
+    <h3>Grafik Real-Time</h3>
+    <div class="filter-btns">
+      <button class="active" onclick="setFilter(1, this)">1 Jam</button>
+      <button onclick="setFilter(6, this)">6 Jam</button>
+      <button onclick="setFilter(24, this)">24 Jam</button>
+    </div>
+  </div>
+  <canvas id="chart" height="90"></canvas>
+</div>
+
+<div class="table-box">
+  <h3>📋 Data Terbaru (Live)</h3>
+  <table class="live-table">
+    <thead>
+      <tr>
+        <th>Waktu</th>
+        <th>Suhu (°C)</th>
+        <th>Kelembapan (%)</th>
+        <th>Cahaya (lux)</th>
+        <th>Indeks</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="live-tbody"></tbody>
+  </table>
+</div>
+
+<script>
+  const BASE = "https://homelab-1.tail6ac996.ts.net";
+  let currentHours = 1;
+  let lastSeenKel1 = null;
+  let lastSeenKel2 = null;
+
+  // Chart setup
+  const chart = new Chart(document.getElementById('chart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Suhu (°C)',      data: [], borderColor: '#388BFD', tension: 0.3, fill: false, pointRadius: 2 },
+        { label: 'Kelembapan (%)', data: [], borderColor: '#238636', tension: 0.3, fill: false, pointRadius: 2 },
+        { label: 'Lux (÷100)',     data: [], borderColor: '#BB8009', tension: 0.3, fill: false, pointRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 300 },
+      plugins: {
+        legend: { labels: { color: '#8B949E', font: { size: 11 } } }
+      },
+      scales: {
+        x: { ticks: { color: '#6E7681', font: { size: 10 } }, grid: { color: '#21262D' } },
+        y: { ticks: { color: '#6E7681', font: { size: 10 } }, grid: { color: '#21262D' } }
+      }
+    }
+  });
+
+  function calcOpt(suhu, lux) {
+    const v = ((suhu - 25) * (lux / 10000)).toFixed(1);
+    return v > 0 ? v : 0;
+  }
+
+  function badgeOpt(v) {
+    if (v >= 20) return `<span class="badge high">${v} Optimal</span>`;
+    if (v >= 8)  return `<span class="badge mid">${v} Cukup</span>`;
+    return `<span class="badge low">${v} Kurang</span>`;
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (diff < 60)  return `${diff} detik lalu`;
+    if (diff < 3600) return `${Math.floor(diff/60)} menit lalu`;
+    return `${Math.floor(diff/3600)} jam lalu`;
+  }
+
+  function checkAlert(suhu, lux) {
+    const el = document.getElementById('alert');
+    const msgs = [];
+    if (suhu > 0 && suhu < 30)  msgs.push(`Suhu rendah: ${suhu}°C`);
+    if (lux > 0 && lux < 10000) msgs.push(`Cahaya rendah: ${lux} lux`);
+    if (msgs.length > 0) {
+      el.textContent = "⚠️ Kondisi kurang optimal — " + msgs.join(' | ');
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+    }
+  }
+
+  function updateNodeStatus() {
+    const now = Date.now();
+    const threshold = 35000; // 35 detik
+
+    const dot1 = document.getElementById('dot-kel1');
+    const dot2 = document.getElementById('dot-kel2');
+    const t1 = document.getElementById('time-kel1');
+    const t2 = document.getElementById('time-kel2');
+
+    if (lastSeenKel1) {
+      const online = (now - lastSeenKel1) < threshold;
+      dot1.className = 'node-dot ' + (online ? 'online' : 'offline');
+      t1.textContent = timeAgo(new Date(lastSeenKel1).toISOString());
+    }
+    if (lastSeenKel2) {
+      const online = (now - lastSeenKel2) < threshold;
+      dot2.className = 'node-dot ' + (online ? 'online' : 'offline');
+      t2.textContent = timeAgo(new Date(lastSeenKel2).toISOString());
+    }
+  }
+
+  function updateCards(data) {
+    const suhu = data.suhu ?? 0;
+    const hum  = data.kelembapan ?? 0;
+    const lux  = data.lux ?? 0;
+    const opt  = calcOpt(suhu, lux);
+
+    document.getElementById('v-suhu').textContent = suhu.toFixed(1);
+    document.getElementById('v-hum').textContent  = hum.toFixed(1);
+    document.getElementById('v-lux').textContent  = lux.toFixed(0);
+    document.getElementById('v-opt').textContent  = opt;
+
+    const now = new Date();
+    document.getElementById('last-update').textContent =
+      'Update: ' + now.toLocaleTimeString('id-ID');
+    document.getElementById('status-dot').style.background = '#238636';
+    document.getElementById('status-txt').textContent = 'Live';
+
+    checkAlert(suhu, lux);
+
+    // Update node status (assume data from both)
+    if (suhu > 0 || hum > 0) lastSeenKel1 = Date.now();
+    if (lux > 0) lastSeenKel2 = Date.now();
+    updateNodeStatus();
+  }
+
+  // Add row to live table (running trade style)
+  function addTableRow(data) {
+    const tbody = document.getElementById('live-tbody');
+    const suhu = (data.suhu ?? 0).toFixed(1);
+    const hum  = (data.kelembapan ?? 0).toFixed(1);
+    const lux  = (data.lux ?? 0).toFixed(0);
+    const opt  = calcOpt(data.suhu ?? 0, data.lux ?? 0);
+    const time = new Date(data.created_at).toLocaleTimeString('id-ID');
+
+    const tr = document.createElement('tr');
+    tr.className = 'new-row';
+    tr.innerHTML = `
+      <td>${time}</td>
+      <td>${suhu}</td>
+      <td>${hum}</td>
+      <td>${lux}</td>
+      <td>${opt}</td>
+      <td>${badgeOpt(opt)}</td>
+    `;
+
+    // Insert di atas (newest first)
+    tbody.insertBefore(tr, tbody.firstChild);
+
+    // Hapus highlight setelah animasi
+    setTimeout(() => tr.classList.remove('new-row'), 800);
+
+    // Max 15 baris
+    while (tbody.rows.length > 15) tbody.deleteRow(tbody.rows.length - 1);
+  }
+
+  // Load chart by hours filter
+  function loadChart(hours) {
+    fetch(`${BASE}/api/sensor/history?hours=${hours}`)
+      .then(r => r.json())
+      .then(rows => {
+        chart.data.labels = [];
+        chart.data.datasets.forEach(d => d.data = []);
+        rows.forEach(row => {
+          chart.data.labels.push(new Date(row.created_at).toLocaleTimeString('id-ID'));
+          chart.data.datasets[0].data.push(row.suhu);
+          chart.data.datasets[1].data.push(row.kelembapan);
+          chart.data.datasets[2].data.push((row.lux / 100).toFixed(1));
+        });
+        chart.update();
+      }).catch(() => {});
+  }
+
+  function setFilter(hours, btn) {
+    currentHours = hours;
+    document.querySelectorAll('.filter-btns button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadChart(hours);
+  }
+
+  let lastId = 0;
+
+  // Poll latest data
+  function fetchLatest() {
+    fetch(`${BASE}/api/sensor/latest`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data || data.suhu === undefined) return;
+        updateCards(data);
+
+        // Tambah ke tabel hanya kalau data baru (id berbeda)
+        if (data.id && data.id !== lastId) {
+          lastId = data.id;
+          addTableRow(data);
+
+          // Update chart juga
+          const label = new Date(data.created_at).toLocaleTimeString('id-ID');
+          chart.data.labels.push(label);
+          chart.data.datasets[0].data.push(data.suhu);
+          chart.data.datasets[1].data.push(data.kelembapan);
+          chart.data.datasets[2].data.push((data.lux / 100).toFixed(1));
+          if (chart.data.labels.length > 50) {
+            chart.data.labels.shift();
+            chart.data.datasets.forEach(d => d.data.shift());
+          }
+          chart.update();
+        }
+      })
+      .catch(() => {
+        document.getElementById('status-dot').style.background = '#F85149';
+        document.getElementById('status-txt').textContent = 'Gagal terhubung';
+      });
+
+    updateNodeStatus();
+  }
+
+  // Init
+  loadChart(1);
+  fetch(`${BASE}/api/sensor/history?hours=1`)
+    .then(r => r.json())
+    .then(rows => {
+      rows.slice(-15).forEach(row => addTableRow(row));
+      if (rows.length > 0) updateCards(rows[rows.length - 1]);
+    }).catch(() => {});
+
+  fetchLatest();
+  setInterval(fetchLatest, 5000);
+  setInterval(updateNodeStatus, 5000);
+</script>
+</body>
+</html>

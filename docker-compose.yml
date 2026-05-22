@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:15-alpine
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./app
+    ports:
+      - "5000:8000"
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - ./app:/app
+    restart: on-failure
+
+volumes:
+  pgdata:
