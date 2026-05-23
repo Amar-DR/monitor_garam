@@ -7,23 +7,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: Arial, sans-serif;
-      background: #0D1117;
-      color: #E6EDF3;
-      padding: 16px;
-      min-height: 100vh;
-    }
+    body { font-family: Arial, sans-serif; background: #0D1117; color: #E6EDF3; padding: 16px; min-height: 100vh; }
 
     header {
-      background: #161B22;
-      border: 1px solid #30363D;
-      padding: 14px 20px;
-      border-radius: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: #161B22; border: 1px solid #30363D;
+      padding: 14px 20px; border-radius: 10px;
+      display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 16px;
     }
     header h1 { font-size: 16px; color: #E6EDF3; }
@@ -32,53 +21,30 @@
     #last-update { font-size: 12px; color: #6E7681; }
 
     .alert {
-      display: none;
-      background: #2D1B1B;
-      border: 1px solid #6E2828;
-      color: #F85149;
-      padding: 10px 16px;
-      border-radius: 8px;
-      margin-bottom: 14px;
-      font-size: 13px;
+      display: none; background: #2D1B1B; border: 1px solid #6E2828;
+      color: #F85149; padding: 10px 16px; border-radius: 8px;
+      margin-bottom: 14px; font-size: 13px;
     }
     .alert.show { display: block; }
 
-    /* Node status */
-    .node-status {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
+    .node-status { display: flex; gap: 10px; margin-bottom: 14px; }
     .node-card {
-      flex: 1;
-      background: #161B22;
-      border: 1px solid #30363D;
-      border-radius: 8px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      flex: 1; background: #161B22; border: 1px solid #30363D;
+      border-radius: 8px; padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px;
     }
     .node-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .node-dot.online  { background: #238636; box-shadow: 0 0 6px #238636; }
     .node-dot.offline { background: #F85149; box-shadow: 0 0 6px #F85149; }
-    .node-info { font-size: 12px; }
-    .node-info .name { font-weight: bold; color: #E6EDF3; }
-    .node-info .time { color: #6E7681; margin-top: 2px; }
+    .node-info .name { font-weight: bold; color: #E6EDF3; font-size: 12px; }
+    .node-info .time { color: #6E7681; margin-top: 2px; font-size: 12px; }
 
-    /* Cards */
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 12px; margin-bottom: 14px;
     }
-    .card {
-      background: #161B22;
-      border: 1px solid #30363D;
-      border-radius: 10px;
-      padding: 16px;
-    }
+    .card { background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 16px; }
     .card.blue   { border-left: 3px solid #388BFD; }
     .card.green  { border-left: 3px solid #238636; }
     .card.amber  { border-left: 3px solid #BB8009; }
@@ -87,72 +53,59 @@
     .card .value { font-size: 30px; font-weight: bold; color: #E6EDF3; }
     .card .unit  { font-size: 11px; color: #6E7681; margin-top: 2px; }
 
-    /* Chart box */
     .chart-box {
-      background: #161B22;
-      border: 1px solid #30363D;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 14px;
+      background: #161B22; border: 1px solid #30363D;
+      border-radius: 10px; padding: 16px; margin-bottom: 14px;
     }
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .chart-header h3 { font-size: 13px; color: #8B949E; }
     .filter-btns { display: flex; gap: 6px; }
     .filter-btns button {
-      background: #21262D;
-      border: 1px solid #30363D;
-      color: #8B949E;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
+      background: #21262D; border: 1px solid #30363D;
+      color: #8B949E; padding: 4px 10px;
+      border-radius: 6px; font-size: 12px; cursor: pointer;
     }
-    .filter-btns button.active {
-      background: #388BFD;
-      border-color: #388BFD;
-      color: #fff;
-    }
+    .filter-btns button.active { background: #388BFD; border-color: #388BFD; color: #fff; }
 
-    /* Live table */
     .table-box {
-      background: #161B22;
-      border: 1px solid #30363D;
-      border-radius: 10px;
-      padding: 16px;
-      overflow: hidden;
+      background: #161B22; border: 1px solid #30363D;
+      border-radius: 10px; padding: 16px;
+      overflow: hidden; margin-bottom: 14px;
     }
     .table-box h3 { font-size: 13px; color: #8B949E; margin-bottom: 10px; }
     .live-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .live-table th {
-      background: #21262D;
-      color: #6E7681;
-      padding: 8px 10px;
-      text-align: left;
-      font-weight: normal;
-      border-bottom: 1px solid #30363D;
+      background: #21262D; color: #6E7681;
+      padding: 8px 10px; text-align: left;
+      font-weight: normal; border-bottom: 1px solid #30363D;
     }
     .live-table td {
-      padding: 7px 10px;
-      border-bottom: 1px solid #21262D;
-      color: #E6EDF3;
-      transition: background 0.4s;
+      padding: 7px 10px; border-bottom: 1px solid #21262D;
+      color: #E6EDF3; transition: background 0.4s;
     }
     .live-table tr.new-row td { background: #1C2A1C; }
     .live-table tr:last-child td { border-bottom: none; }
-    .badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: 11px;
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+    .badge.high { background: #1B3A1B; color: #3FB950; }
+    .badge.mid  { background: #2D2A1B; color: #E3B341; }
+    .badge.low  { background: #2D1B1B; color: #F85149; }
+
+    /* Daily Report */
+    .section-title {
+      font-size: 13px; color: #8B949E;
+      margin-bottom: 10px; display: flex;
+      align-items: center; gap: 6px;
     }
-    .badge.high   { background: #1B3A1B; color: #3FB950; }
-    .badge.mid    { background: #2D2A1B; color: #E3B341; }
-    .badge.low    { background: #2D1B1B; color: #F85149; }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .report-table th {
+      background: #21262D; color: #6E7681;
+      padding: 8px 10px; text-align: left;
+      font-weight: normal; border-bottom: 1px solid #30363D;
+    }
+    .report-table td {
+      padding: 7px 10px; border-bottom: 1px solid #21262D; color: #E6EDF3;
+    }
+    .report-table tr:last-child td { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -239,13 +192,33 @@
   </table>
 </div>
 
+<!-- Laporan Harian -->
+<div class="table-box">
+  <h3>📅 Laporan Harian (7 Hari Terakhir)</h3>
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Avg Suhu (°C)</th>
+        <th>Min/Max Suhu</th>
+        <th>Avg Kelembapan (%)</th>
+        <th>Avg Lux</th>
+        <th>Max Lux</th>
+        <th>Total Data</th>
+      </tr>
+    </thead>
+    <tbody id="report-tbody">
+      <tr><td colspan="7" style="color:#6E7681;text-align:center;padding:16px">Memuat laporan...</td></tr>
+    </tbody>
+  </table>
+</div>
+
 <script>
   const BASE = "https://homelab-1.tail6ac996.ts.net";
   let currentHours = 1;
-  let lastSeenKel1 = null;
-  let lastSeenKel2 = null;
+  let lastId = 0;
 
-  // Chart setup
+  // Chart
   const chart = new Chart(document.getElementById('chart').getContext('2d'), {
     type: 'line',
     data: {
@@ -259,9 +232,7 @@
     options: {
       responsive: true,
       animation: { duration: 300 },
-      plugins: {
-        legend: { labels: { color: '#8B949E', font: { size: 11 } } }
-      },
+      plugins: { legend: { labels: { color: '#8B949E', font: { size: 11 } } } },
       scales: {
         x: { ticks: { color: '#6E7681', font: { size: 10 } }, grid: { color: '#21262D' } },
         y: { ticks: { color: '#6E7681', font: { size: 10 } }, grid: { color: '#21262D' } }
@@ -282,7 +253,7 @@
 
   function timeAgo(dateStr) {
     const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-    if (diff < 60)  return `${diff} detik lalu`;
+    if (diff < 60)   return `${diff} detik lalu`;
     if (diff < 3600) return `${Math.floor(diff/60)} menit lalu`;
     return `${Math.floor(diff/3600)} jam lalu`;
   }
@@ -300,25 +271,30 @@
     }
   }
 
+  // Node status dari server (akurat per group)
   function updateNodeStatus() {
-    const now = Date.now();
-    const threshold = 35000; // 35 detik
+    fetch(`${BASE}/api/node/status`)
+      .then(r => r.json())
+      .then(status => {
+        const now = Date.now();
+        const threshold = 35000;
 
-    const dot1 = document.getElementById('dot-kel1');
-    const dot2 = document.getElementById('dot-kel2');
-    const t1 = document.getElementById('time-kel1');
-    const t2 = document.getElementById('time-kel2');
+        const update = (dotId, timeId, lastSeen) => {
+          const dot  = document.getElementById(dotId);
+          const time = document.getElementById(timeId);
+          if (lastSeen) {
+            const ms = now - new Date(lastSeen).getTime();
+            dot.className = 'node-dot ' + (ms < threshold ? 'online' : 'offline');
+            time.textContent = timeAgo(lastSeen);
+          } else {
+            dot.className = 'node-dot offline';
+            time.textContent = 'Belum ada data';
+          }
+        };
 
-    if (lastSeenKel1) {
-      const online = (now - lastSeenKel1) < threshold;
-      dot1.className = 'node-dot ' + (online ? 'online' : 'offline');
-      t1.textContent = timeAgo(new Date(lastSeenKel1).toISOString());
-    }
-    if (lastSeenKel2) {
-      const online = (now - lastSeenKel2) < threshold;
-      dot2.className = 'node-dot ' + (online ? 'online' : 'offline');
-      t2.textContent = timeAgo(new Date(lastSeenKel2).toISOString());
-    }
+        update('dot-kel1', 'time-kel1', status.kel1);
+        update('dot-kel2', 'time-kel2', status.kel2);
+      }).catch(() => {});
   }
 
   function updateCards(data) {
@@ -331,22 +307,13 @@
     document.getElementById('v-hum').textContent  = hum.toFixed(1);
     document.getElementById('v-lux').textContent  = lux.toFixed(0);
     document.getElementById('v-opt').textContent  = opt;
-
-    const now = new Date();
-    document.getElementById('last-update').textContent =
-      'Update: ' + now.toLocaleTimeString('id-ID');
+    document.getElementById('last-update').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID');
     document.getElementById('status-dot').style.background = '#238636';
     document.getElementById('status-txt').textContent = 'Live';
 
     checkAlert(suhu, lux);
-
-    // Update node status (assume data from both)
-    if (suhu > 0 || hum > 0) lastSeenKel1 = Date.now();
-    if (lux > 0) lastSeenKel2 = Date.now();
-    updateNodeStatus();
   }
 
-  // Add row to live table (running trade style)
   function addTableRow(data) {
     const tbody = document.getElementById('live-tbody');
     const suhu = (data.suhu ?? 0).toFixed(1);
@@ -358,25 +325,14 @@
     const tr = document.createElement('tr');
     tr.className = 'new-row';
     tr.innerHTML = `
-      <td>${time}</td>
-      <td>${suhu}</td>
-      <td>${hum}</td>
-      <td>${lux}</td>
-      <td>${opt}</td>
-      <td>${badgeOpt(opt)}</td>
+      <td>${time}</td><td>${suhu}</td><td>${hum}</td>
+      <td>${lux}</td><td>${opt}</td><td>${badgeOpt(opt)}</td>
     `;
-
-    // Insert di atas (newest first)
     tbody.insertBefore(tr, tbody.firstChild);
-
-    // Hapus highlight setelah animasi
     setTimeout(() => tr.classList.remove('new-row'), 800);
-
-    // Max 15 baris
     while (tbody.rows.length > 15) tbody.deleteRow(tbody.rows.length - 1);
   }
 
-  // Load chart by hours filter
   function loadChart(hours) {
     fetch(`${BASE}/api/sensor/history?hours=${hours}`)
       .then(r => r.json())
@@ -400,22 +356,39 @@
     loadChart(hours);
   }
 
-  let lastId = 0;
+  // Laporan harian
+  function loadDailyReport() {
+    fetch(`${BASE}/api/daily/report`)
+      .then(r => r.json())
+      .then(rows => {
+        const tbody = document.getElementById('report-tbody');
+        if (rows.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="color:#6E7681;text-align:center;padding:16px">Belum ada data harian</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${r.tanggal}</td>
+            <td>${r.avg_suhu}°C</td>
+            <td>${r.min_suhu} / ${r.max_suhu}°C</td>
+            <td>${r.avg_kelembapan}%</td>
+            <td>${Number(r.avg_lux).toLocaleString()}</td>
+            <td>${Number(r.max_lux).toLocaleString()}</td>
+            <td>${r.total_data}</td>
+          </tr>
+        `).join('');
+      }).catch(() => {});
+  }
 
-  // Poll latest data
   function fetchLatest() {
     fetch(`${BASE}/api/sensor/latest`)
       .then(r => r.json())
       .then(data => {
         if (!data || data.suhu === undefined) return;
         updateCards(data);
-
-        // Tambah ke tabel hanya kalau data baru (id berbeda)
         if (data.id && data.id !== lastId) {
           lastId = data.id;
           addTableRow(data);
-
-          // Update chart juga
           const label = new Date(data.created_at).toLocaleTimeString('id-ID');
           chart.data.labels.push(label);
           chart.data.datasets[0].data.push(data.suhu);
@@ -432,12 +405,11 @@
         document.getElementById('status-dot').style.background = '#F85149';
         document.getElementById('status-txt').textContent = 'Gagal terhubung';
       });
-
-    updateNodeStatus();
   }
 
   // Init
   loadChart(1);
+  loadDailyReport();
   fetch(`${BASE}/api/sensor/history?hours=1`)
     .then(r => r.json())
     .then(rows => {
@@ -446,8 +418,10 @@
     }).catch(() => {});
 
   fetchLatest();
+  updateNodeStatus();
   setInterval(fetchLatest, 5000);
-  setInterval(updateNodeStatus, 5000);
+  setInterval(updateNodeStatus, 10000);
+  setInterval(loadDailyReport, 60000); // refresh laporan tiap 1 menit
 </script>
 </body>
 </html>
