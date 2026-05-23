@@ -33,11 +33,17 @@
       border-radius: 8px; padding: 10px 14px;
       display: flex; align-items: center; gap: 10px;
     }
+    .node-card.gateway { border-color: #388BFD44; }
     .node-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .node-dot.online  { background: #238636; box-shadow: 0 0 6px #238636; }
     .node-dot.offline { background: #F85149; box-shadow: 0 0 6px #F85149; }
     .node-info .name { font-weight: bold; color: #E6EDF3; font-size: 12px; }
     .node-info .time { color: #6E7681; margin-top: 2px; font-size: 12px; }
+    .node-info .badge-gw {
+      display: inline-block; font-size: 10px;
+      background: #1C2A3A; color: #388BFD;
+      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    }
 
     .cards {
       display: grid;
@@ -90,21 +96,13 @@
     .badge.mid  { background: #2D2A1B; color: #E3B341; }
     .badge.low  { background: #2D1B1B; color: #F85149; }
 
-    /* Daily Report */
-    .section-title {
-      font-size: 13px; color: #8B949E;
-      margin-bottom: 10px; display: flex;
-      align-items: center; gap: 6px;
-    }
     .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .report-table th {
       background: #21262D; color: #6E7681;
       padding: 8px 10px; text-align: left;
       font-weight: normal; border-bottom: 1px solid #30363D;
     }
-    .report-table td {
-      padding: 7px 10px; border-bottom: 1px solid #21262D; color: #E6EDF3;
-    }
+    .report-table td { padding: 7px 10px; border-bottom: 1px solid #21262D; color: #E6EDF3; }
     .report-table tr:last-child td { border-bottom: none; }
   </style>
 </head>
@@ -124,6 +122,15 @@
 <div class="alert" id="alert"></div>
 
 <div class="node-status">
+  <!-- Gateway Kel.6 -->
+  <div class="node-card gateway">
+    <div class="node-dot offline" id="dot-kel6"></div>
+    <div class="node-info">
+      <div class="name">ESP32 — Kelompok 6 <span class="badge-gw">Gateway</span></div>
+      <div class="time" id="time-kel6">Belum ada data</div>
+    </div>
+  </div>
+  <!-- Sensor Kel.1 -->
   <div class="node-card">
     <div class="node-dot offline" id="dot-kel1"></div>
     <div class="node-info">
@@ -131,6 +138,7 @@
       <div class="time" id="time-kel1">Belum ada data</div>
     </div>
   </div>
+  <!-- Sensor Kel.2 -->
   <div class="node-card">
     <div class="node-dot offline" id="dot-kel2"></div>
     <div class="node-info">
@@ -180,31 +188,21 @@
   <table class="live-table">
     <thead>
       <tr>
-        <th>Waktu</th>
-        <th>Suhu (°C)</th>
-        <th>Kelembapan (%)</th>
-        <th>Cahaya (lux)</th>
-        <th>Indeks</th>
-        <th>Status</th>
+        <th>Waktu</th><th>Suhu (°C)</th><th>Kelembapan (%)</th>
+        <th>Cahaya (lux)</th><th>Indeks</th><th>Status</th>
       </tr>
     </thead>
     <tbody id="live-tbody"></tbody>
   </table>
 </div>
 
-<!-- Laporan Harian -->
 <div class="table-box">
   <h3>📅 Laporan Harian (7 Hari Terakhir)</h3>
   <table class="report-table">
     <thead>
       <tr>
-        <th>Tanggal</th>
-        <th>Avg Suhu (°C)</th>
-        <th>Min/Max Suhu</th>
-        <th>Avg Kelembapan (%)</th>
-        <th>Avg Lux</th>
-        <th>Max Lux</th>
-        <th>Total Data</th>
+        <th>Tanggal</th><th>Avg Suhu (°C)</th><th>Min/Max Suhu</th>
+        <th>Avg Kelembapan (%)</th><th>Avg Lux</th><th>Max Lux</th><th>Total Data</th>
       </tr>
     </thead>
     <tbody id="report-tbody">
@@ -218,7 +216,6 @@
   let currentHours = 1;
   let lastId = 0;
 
-  // Chart
   const chart = new Chart(document.getElementById('chart').getContext('2d'), {
     type: 'line',
     data: {
@@ -271,29 +268,29 @@
     }
   }
 
-  // Node status dari server (akurat per group)
-  function updateNodeStatus() {
+  function setNodeDot(dotId, timeId, lastSeen, threshold = 35000) {
+    const dot  = document.getElementById(dotId);
+    const time = document.getElementById(timeId);
+    if (lastSeen) {
+      const ms = Date.now() - new Date(lastSeen).getTime();
+      dot.className = 'node-dot ' + (ms < threshold ? 'online' : 'offline');
+      time.textContent = timeAgo(lastSeen);
+    } else {
+      dot.className = 'node-dot offline';
+      time.textContent = 'Belum ada data';
+    }
+  }
+
+  function updateNodeStatus(latestCreatedAt) {
+    // Kel.6 — cek dari timestamp data terbaru di DB
+    setNodeDot('dot-kel6', 'time-kel6', latestCreatedAt);
+
+    // Kel.1 & Kel.2 — dari server node/status
     fetch(`${BASE}/api/node/status`)
       .then(r => r.json())
       .then(status => {
-        const now = Date.now();
-        const threshold = 35000;
-
-        const update = (dotId, timeId, lastSeen) => {
-          const dot  = document.getElementById(dotId);
-          const time = document.getElementById(timeId);
-          if (lastSeen) {
-            const ms = now - new Date(lastSeen).getTime();
-            dot.className = 'node-dot ' + (ms < threshold ? 'online' : 'offline');
-            time.textContent = timeAgo(lastSeen);
-          } else {
-            dot.className = 'node-dot offline';
-            time.textContent = 'Belum ada data';
-          }
-        };
-
-        update('dot-kel1', 'time-kel1', status.kel1);
-        update('dot-kel2', 'time-kel2', status.kel2);
+        setNodeDot('dot-kel1', 'time-kel1', status.kel1);
+        setNodeDot('dot-kel2', 'time-kel2', status.kel2);
       }).catch(() => {});
   }
 
@@ -356,7 +353,6 @@
     loadChart(hours);
   }
 
-  // Laporan harian
   function loadDailyReport() {
     fetch(`${BASE}/api/daily/report`)
       .then(r => r.json())
@@ -386,6 +382,8 @@
       .then(data => {
         if (!data || data.suhu === undefined) return;
         updateCards(data);
+        updateNodeStatus(data.created_at);
+
         if (data.id && data.id !== lastId) {
           lastId = data.id;
           addTableRow(data);
@@ -418,10 +416,8 @@
     }).catch(() => {});
 
   fetchLatest();
-  updateNodeStatus();
   setInterval(fetchLatest, 5000);
-  setInterval(updateNodeStatus, 10000);
-  setInterval(loadDailyReport, 60000); // refresh laporan tiap 1 menit
+  setInterval(loadDailyReport, 60000);
 </script>
 </body>
 </html>
