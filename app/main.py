@@ -1,16 +1,41 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
 import asyncpg, json, os
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-DB_URL = os.getenv("DATABASE_URL")
+DB_URL        = os.getenv("DATABASE_URL")
+DASHBOARD_USER = os.getenv("DASHBOARD_USER", "kelompok6")
+DASHBOARD_PASS = os.getenv("DASHBOARD_PASS", "tambakgaram2025")
+JWT_SECRET    = os.getenv("JWT_SECRET", "secret")
+JWT_ALGO      = "HS256"
+JWT_EXPIRE_HOURS = 24
+
 active_ws: list[WebSocket] = []
 node_last_seen = {"kel1": None, "kel2": None}
 
+security = HTTPBearer()
+
+# ── JWT helpers ──────────────────────────────────────────────
+def create_token(username: str) -> str:
+    expire = datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)
+    return jwt.encode({"sub": username, "exp": expire}, JWT_SECRET, algorithm=JWT_ALGO)
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGO])
+        if payload.get("sub") is None:
+            raise HTTPException(status_code=401, detail="Token tidak valid")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token tidak valid atau expired")
+
+# ── DB ───────────────────────────────────────────────────────
 async def get_db():
     return await asyncpg.connect(DB_URL)
 
@@ -28,11 +53,25 @@ async def startup():
     """)
     await conn.close()
 
+# ── Schema ───────────────────────────────────────────────────
+class LoginPayload(BaseModel):
+    username: str
+    password: str
+
 class IngestPayload(BaseModel):
     group1: dict
     group2: dict
     timestamp: int | None = None
 
+# ── POST /api/login ──────────────────────────────────────────
+@app.post("/api/login")
+async def login(payload: LoginPayload):
+    if payload.username != DASHBOARD_USER or payload.password != DASHBOARD_PASS:
+        raise HTTPException(status_code=401, detail="Username atau password salah")
+    token = create_token(payload.username)
+    return {"token": token}
+
+# ── POST /api/ingest — dari ESP, tidak perlu auth ────────────
 @app.post("/api/ingest")
 async def ingest(payload: IngestPayload):
     conn = await get_db()
@@ -47,19 +86,15 @@ async def ingest(payload: IngestPayload):
     )
     await conn.close()
 
-    # Update node last seen hanya kalau data non-zero
     if payload.group1.get("suhu", 0) > 0 or payload.group1.get("kelembapan", 0) > 0:
         node_last_seen["kel1"] = datetime.utcnow().isoformat()
     if payload.group2.get("lux", 0) > 0:
         node_last_seen["kel2"] = datetime.utcnow().isoformat()
 
     data = {
-        "suhu": row["suhu"],
-        "kelembapan": row["kelembapan"],
-        "lux": row["lux"],
-        "created_at": str(row["created_at"])
+        "suhu": row["suhu"], "kelembapan": row["kelembapan"],
+        "lux": row["lux"], "created_at": str(row["created_at"])
     }
-
     for ws in active_ws:
         try:
             await ws.send_text(json.dumps(data))
@@ -68,8 +103,9 @@ async def ingest(payload: IngestPayload):
 
     return {"status": "ok", "id": row["id"]}
 
+# ── GET /api/sensor/latest ───────────────────────────────────
 @app.get("/api/sensor/latest")
-async def latest():
+async def latest(auth=Depends(verify_token)):
     conn = await get_db()
     row = await conn.fetchrow(
         "SELECT * FROM sensor_readings ORDER BY created_at DESC LIMIT 1"
@@ -77,8 +113,9 @@ async def latest():
     await conn.close()
     return dict(row) if row else {}
 
+# ── GET /api/sensor/history ──────────────────────────────────
 @app.get("/api/sensor/history")
-async def history(hours: int = 1):
+async def history(hours: int = 1, auth=Depends(verify_token)):
     conn = await get_db()
     rows = await conn.fetch("""
         SELECT suhu, kelembapan, lux, created_at
@@ -89,12 +126,14 @@ async def history(hours: int = 1):
     await conn.close()
     return [dict(r) for r in rows]
 
+# ── GET /api/node/status ─────────────────────────────────────
 @app.get("/api/node/status")
-async def node_status():
+async def node_status(auth=Depends(verify_token)):
     return node_last_seen
 
+# ── GET /api/daily/report ────────────────────────────────────
 @app.get("/api/daily/report")
-async def daily_report():
+async def daily_report(auth=Depends(verify_token)):
     conn = await get_db()
     rows = await conn.fetch("""
         SELECT
@@ -114,6 +153,7 @@ async def daily_report():
     await conn.close()
     return [dict(r) for r in rows]
 
+# ── WebSocket /ws/live ───────────────────────────────────────
 @app.websocket("/ws/live")
 async def ws_live(ws: WebSocket):
     await ws.accept()

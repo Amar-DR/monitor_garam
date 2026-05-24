@@ -4,3 +4,5 @@ asyncpg
 psycopg2-binary
 python-dotenv
 pydantic
+python-jose[cryptography]
+passlib

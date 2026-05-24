@@ -9,6 +9,39 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #0D1117; color: #E6EDF3; padding: 16px; min-height: 100vh; }
 
+    /* ── Login ── */
+    #login-page {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 16px;
+    }
+    .login-box {
+      background: #161B22; border: 1px solid #30363D;
+      border-radius: 12px; padding: 36px 32px;
+      width: 100%; max-width: 360px;
+    }
+    .login-box h2 { font-size: 18px; margin-bottom: 6px; color: #E6EDF3; }
+    .login-box p  { font-size: 13px; color: #6E7681; margin-bottom: 24px; }
+    .login-box label { font-size: 12px; color: #8B949E; display: block; margin-bottom: 6px; }
+    .login-box input {
+      width: 100%; background: #0D1117; border: 1px solid #30363D;
+      color: #E6EDF3; padding: 10px 12px; border-radius: 6px;
+      font-size: 14px; margin-bottom: 14px; outline: none;
+    }
+    .login-box input:focus { border-color: #388BFD; }
+    .login-box button {
+      width: 100%; background: #238636; border: none; color: #fff;
+      padding: 10px; border-radius: 6px; font-size: 14px;
+      cursor: pointer; font-weight: bold;
+    }
+    .login-box button:hover { background: #2EA043; }
+    #login-error {
+      display: none; color: #F85149; font-size: 12px;
+      margin-top: 10px; text-align: center;
+    }
+
+    /* ── Dashboard ── */
+    #dashboard-page { display: none; }
+
     header {
       background: #161B22; border: 1px solid #30363D;
       padding: 14px 20px; border-radius: 10px;
@@ -16,9 +49,15 @@
       margin-bottom: 16px;
     }
     header h1 { font-size: 16px; color: #E6EDF3; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     #status-bar { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8B949E; }
     #status-dot { width: 8px; height: 8px; border-radius: 50%; background: #238636; }
     #last-update { font-size: 12px; color: #6E7681; }
+    #btn-logout {
+      background: none; border: 1px solid #30363D; color: #8B949E;
+      padding: 3px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    }
+    #btn-logout:hover { border-color: #F85149; color: #F85149; }
 
     .alert {
       display: none; background: #2D1B1B; border: 1px solid #6E2828;
@@ -39,7 +78,7 @@
     .node-dot.offline { background: #F85149; box-shadow: 0 0 6px #F85149; }
     .node-info .name { font-weight: bold; color: #E6EDF3; font-size: 12px; }
     .node-info .time { color: #6E7681; margin-top: 2px; font-size: 12px; }
-    .node-info .badge-gw {
+    .badge-gw {
       display: inline-block; font-size: 10px;
       background: #1C2A3A; color: #388BFD;
       padding: 1px 6px; border-radius: 4px; margin-left: 6px;
@@ -108,114 +147,175 @@
 </head>
 <body>
 
-<header>
-  <h1>🌊 Monitoring Produksi Tambak Garam — Kelompok 6</h1>
-  <div>
-    <div id="status-bar">
-      <span id="status-dot"></span>
-      <span id="status-txt">Menghubungkan...</span>
-    </div>
-    <div id="last-update"></div>
-  </div>
-</header>
-
-<div class="alert" id="alert"></div>
-
-<div class="node-status">
-  <!-- Gateway Kel.6 -->
-  <div class="node-card gateway">
-    <div class="node-dot offline" id="dot-kel6"></div>
-    <div class="node-info">
-      <div class="name">ESP32 — Kelompok 6 <span class="badge-gw">Gateway</span></div>
-      <div class="time" id="time-kel6">Belum ada data</div>
-    </div>
-  </div>
-  <!-- Sensor Kel.1 -->
-  <div class="node-card">
-    <div class="node-dot offline" id="dot-kel1"></div>
-    <div class="node-info">
-      <div class="name">ESP32 — Kelompok 1</div>
-      <div class="time" id="time-kel1">Belum ada data</div>
-    </div>
-  </div>
-  <!-- Sensor Kel.2 -->
-  <div class="node-card">
-    <div class="node-dot offline" id="dot-kel2"></div>
-    <div class="node-info">
-      <div class="name">ESP32 — Kelompok 2</div>
-      <div class="time" id="time-kel2">Belum ada data</div>
-    </div>
+<!-- ── LOGIN PAGE ── -->
+<div id="login-page">
+  <div class="login-box">
+    <h2>🌊 Tambak Garam</h2>
+    <p>Monitoring Produksi — Kelompok 6</p>
+    <label>Username</label>
+    <input type="text" id="inp-user" placeholder="Username" autocomplete="username"/>
+    <label>Password</label>
+    <input type="password" id="inp-pass" placeholder="Password" autocomplete="current-password"/>
+    <button onclick="doLogin()">Masuk</button>
+    <div id="login-error">Username atau password salah</div>
   </div>
 </div>
 
-<div class="cards">
-  <div class="card blue">
-    <div class="label">Suhu</div>
-    <div class="value" id="v-suhu">--</div>
-    <div class="unit">°C</div>
-  </div>
-  <div class="card green">
-    <div class="label">Kelembapan</div>
-    <div class="value" id="v-hum">--</div>
-    <div class="unit">%</div>
-  </div>
-  <div class="card amber">
-    <div class="label">Intensitas Cahaya</div>
-    <div class="value" id="v-lux">--</div>
-    <div class="unit">lux</div>
-  </div>
-  <div class="card purple">
-    <div class="label">Indeks Optimalitas</div>
-    <div class="value" id="v-opt">--</div>
-    <div class="unit">/ kondisi</div>
-  </div>
-</div>
+<!-- ── DASHBOARD PAGE ── -->
+<div id="dashboard-page">
 
-<div class="chart-box">
-  <div class="chart-header">
-    <h3>Grafik Real-Time</h3>
-    <div class="filter-btns">
-      <button class="active" onclick="setFilter(1, this)">1 Jam</button>
-      <button onclick="setFilter(6, this)">6 Jam</button>
-      <button onclick="setFilter(24, this)">24 Jam</button>
+  <header>
+    <h1>🌊 Monitoring Produksi Tambak Garam — Kelompok 6</h1>
+    <div class="header-right">
+      <div id="status-bar">
+        <span id="status-dot"></span>
+        <span id="status-txt">Menghubungkan...</span>
+      </div>
+      <div id="last-update"></div>
+      <button id="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="alert" id="alert"></div>
+
+  <div class="node-status">
+    <div class="node-card gateway">
+      <div class="node-dot offline" id="dot-kel6"></div>
+      <div class="node-info">
+        <div class="name">ESP32 — Kelompok 6 <span class="badge-gw">Gateway</span></div>
+        <div class="time" id="time-kel6">Belum ada data</div>
+      </div>
+    </div>
+    <div class="node-card">
+      <div class="node-dot offline" id="dot-kel1"></div>
+      <div class="node-info">
+        <div class="name">ESP32 — Kelompok 1</div>
+        <div class="time" id="time-kel1">Belum ada data</div>
+      </div>
+    </div>
+    <div class="node-card">
+      <div class="node-dot offline" id="dot-kel2"></div>
+      <div class="node-info">
+        <div class="name">ESP32 — Kelompok 2</div>
+        <div class="time" id="time-kel2">Belum ada data</div>
+      </div>
     </div>
   </div>
-  <canvas id="chart" height="90"></canvas>
-</div>
 
-<div class="table-box">
-  <h3>📋 Data Terbaru (Live)</h3>
-  <table class="live-table">
-    <thead>
-      <tr>
-        <th>Waktu</th><th>Suhu (°C)</th><th>Kelembapan (%)</th>
-        <th>Cahaya (lux)</th><th>Indeks</th><th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="live-tbody"></tbody>
-  </table>
-</div>
+  <div class="cards">
+    <div class="card blue">
+      <div class="label">Suhu</div>
+      <div class="value" id="v-suhu">--</div>
+      <div class="unit">°C</div>
+    </div>
+    <div class="card green">
+      <div class="label">Kelembapan</div>
+      <div class="value" id="v-hum">--</div>
+      <div class="unit">%</div>
+    </div>
+    <div class="card amber">
+      <div class="label">Intensitas Cahaya</div>
+      <div class="value" id="v-lux">--</div>
+      <div class="unit">lux</div>
+    </div>
+    <div class="card purple">
+      <div class="label">Indeks Optimalitas</div>
+      <div class="value" id="v-opt">--</div>
+      <div class="unit">/ kondisi</div>
+    </div>
+  </div>
 
-<div class="table-box">
-  <h3>📅 Laporan Harian (7 Hari Terakhir)</h3>
-  <table class="report-table">
-    <thead>
-      <tr>
-        <th>Tanggal</th><th>Avg Suhu (°C)</th><th>Min/Max Suhu</th>
-        <th>Avg Kelembapan (%)</th><th>Avg Lux</th><th>Max Lux</th><th>Total Data</th>
-      </tr>
-    </thead>
-    <tbody id="report-tbody">
-      <tr><td colspan="7" style="color:#6E7681;text-align:center;padding:16px">Memuat laporan...</td></tr>
-    </tbody>
-  </table>
-</div>
+  <div class="chart-box">
+    <div class="chart-header">
+      <h3>Grafik Real-Time</h3>
+      <div class="filter-btns">
+        <button class="active" onclick="setFilter(1, this)">1 Jam</button>
+        <button onclick="setFilter(6, this)">6 Jam</button>
+        <button onclick="setFilter(24, this)">24 Jam</button>
+      </div>
+    </div>
+    <canvas id="chart" height="90"></canvas>
+  </div>
+
+  <div class="table-box">
+    <h3>📋 Data Terbaru (Live)</h3>
+    <table class="live-table">
+      <thead>
+        <tr>
+          <th>Waktu</th><th>Suhu (°C)</th><th>Kelembapan (%)</th>
+          <th>Cahaya (lux)</th><th>Indeks</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="live-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="table-box">
+    <h3>📅 Laporan Harian (7 Hari Terakhir)</h3>
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Tanggal</th><th>Avg Suhu (°C)</th><th>Min/Max Suhu</th>
+          <th>Avg Kelembapan (%)</th><th>Avg Lux</th><th>Max Lux</th><th>Total Data</th>
+        </tr>
+      </thead>
+      <tbody id="report-tbody">
+        <tr><td colspan="7" style="color:#6E7681;text-align:center;padding:16px">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end dashboard-page -->
 
 <script>
   const BASE = "https://homelab-1.tail6ac996.ts.net";
   let currentHours = 1;
   let lastId = 0;
 
+  // ── Auth helpers ──────────────────────────────────────────
+  function getToken() { return localStorage.getItem('tg_token'); }
+  function setToken(t) { localStorage.setItem('tg_token', t); }
+  function clearToken() { localStorage.removeItem('tg_token'); }
+
+  function authHeader() {
+    return { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' };
+  }
+
+  function showLogin()     { document.getElementById('login-page').style.display = 'flex'; document.getElementById('dashboard-page').style.display = 'none'; }
+  function showDashboard() { document.getElementById('login-page').style.display = 'none'; document.getElementById('dashboard-page').style.display = 'block'; }
+
+  async function doLogin() {
+    const user = document.getElementById('inp-user').value;
+    const pass = document.getElementById('inp-pass').value;
+    const err  = document.getElementById('login-error');
+
+    try {
+      const res = await fetch(`${BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      if (!res.ok) { err.style.display = 'block'; return; }
+      const data = await res.json();
+      setToken(data.token);
+      err.style.display = 'none';
+      initDashboard();
+    } catch {
+      err.style.display = 'block';
+    }
+  }
+
+  function doLogout() {
+    clearToken();
+    showLogin();
+  }
+
+  // Enter key di input password
+  document.getElementById('inp-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // ── Chart ─────────────────────────────────────────────────
   const chart = new Chart(document.getElementById('chart').getContext('2d'), {
     type: 'line',
     data: {
@@ -282,13 +382,11 @@
   }
 
   function updateNodeStatus(latestCreatedAt) {
-    // Kel.6 — cek dari timestamp data terbaru di DB
     setNodeDot('dot-kel6', 'time-kel6', latestCreatedAt);
-
-    // Kel.1 & Kel.2 — dari server node/status
-    fetch(`${BASE}/api/node/status`)
-      .then(r => r.json())
+    fetch(`${BASE}/api/node/status`, { headers: authHeader() })
+      .then(r => { if (r.status === 401) { doLogout(); return null; } return r.json(); })
       .then(status => {
+        if (!status) return;
         setNodeDot('dot-kel1', 'time-kel1', status.kel1);
         setNodeDot('dot-kel2', 'time-kel2', status.kel2);
       }).catch(() => {});
@@ -307,7 +405,6 @@
     document.getElementById('last-update').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID');
     document.getElementById('status-dot').style.background = '#238636';
     document.getElementById('status-txt').textContent = 'Live';
-
     checkAlert(suhu, lux);
   }
 
@@ -331,9 +428,10 @@
   }
 
   function loadChart(hours) {
-    fetch(`${BASE}/api/sensor/history?hours=${hours}`)
-      .then(r => r.json())
+    fetch(`${BASE}/api/sensor/history?hours=${hours}`, { headers: authHeader() })
+      .then(r => { if (r.status === 401) { doLogout(); return null; } return r.json(); })
       .then(rows => {
+        if (!rows) return;
         chart.data.labels = [];
         chart.data.datasets.forEach(d => d.data = []);
         rows.forEach(row => {
@@ -354,9 +452,10 @@
   }
 
   function loadDailyReport() {
-    fetch(`${BASE}/api/daily/report`)
-      .then(r => r.json())
+    fetch(`${BASE}/api/daily/report`, { headers: authHeader() })
+      .then(r => { if (r.status === 401) { doLogout(); return null; } return r.json(); })
       .then(rows => {
+        if (!rows) return;
         const tbody = document.getElementById('report-tbody');
         if (rows.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7" style="color:#6E7681;text-align:center;padding:16px">Belum ada data harian</td></tr>`;
@@ -364,10 +463,8 @@
         }
         tbody.innerHTML = rows.map(r => `
           <tr>
-            <td>${r.tanggal}</td>
-            <td>${r.avg_suhu}°C</td>
-            <td>${r.min_suhu} / ${r.max_suhu}°C</td>
-            <td>${r.avg_kelembapan}%</td>
+            <td>${r.tanggal}</td><td>${r.avg_suhu}°C</td>
+            <td>${r.min_suhu} / ${r.max_suhu}°C</td><td>${r.avg_kelembapan}%</td>
             <td>${Number(r.avg_lux).toLocaleString()}</td>
             <td>${Number(r.max_lux).toLocaleString()}</td>
             <td>${r.total_data}</td>
@@ -377,13 +474,12 @@
   }
 
   function fetchLatest() {
-    fetch(`${BASE}/api/sensor/latest`)
-      .then(r => r.json())
+    fetch(`${BASE}/api/sensor/latest`, { headers: authHeader() })
+      .then(r => { if (r.status === 401) { doLogout(); return null; } return r.json(); })
       .then(data => {
         if (!data || data.suhu === undefined) return;
         updateCards(data);
         updateNodeStatus(data.created_at);
-
         if (data.id && data.id !== lastId) {
           lastId = data.id;
           addTableRow(data);
@@ -405,19 +501,31 @@
       });
   }
 
-  // Init
-  loadChart(1);
-  loadDailyReport();
-  fetch(`${BASE}/api/sensor/history?hours=1`)
-    .then(r => r.json())
-    .then(rows => {
-      rows.slice(-15).forEach(row => addTableRow(row));
-      if (rows.length > 0) updateCards(rows[rows.length - 1]);
-    }).catch(() => {});
+  let pollingInterval = null;
 
-  fetchLatest();
-  setInterval(fetchLatest, 5000);
-  setInterval(loadDailyReport, 60000);
+  function initDashboard() {
+    showDashboard();
+    loadChart(1);
+    loadDailyReport();
+    fetch(`${BASE}/api/sensor/history?hours=1`, { headers: authHeader() })
+      .then(r => r.json())
+      .then(rows => {
+        rows.slice(-15).forEach(row => addTableRow(row));
+        if (rows.length > 0) updateCards(rows[rows.length - 1]);
+      }).catch(() => {});
+
+    fetchLatest();
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(fetchLatest, 5000);
+    setInterval(loadDailyReport, 60000);
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  if (getToken()) {
+    initDashboard();
+  } else {
+    showLogin();
+  }
 </script>
 </body>
 </html>
